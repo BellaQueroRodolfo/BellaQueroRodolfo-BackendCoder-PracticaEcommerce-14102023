@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const ProductManager = require('../productManager');
-const productManager = new ProductManager('../data/products.json', '../data/carts.json');
+const Product = require('../dao/models/Product');
 
 router.get('/', async (req, res) => {
   try {
-    const plantProducts = await productManager.getPlantProducts();
-    res.json({ plantProducts });
+    const products = await Product.find();
+    res.json({ products });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -15,11 +14,11 @@ router.get('/', async (req, res) => {
 router.get('/:pid', async (req, res) => {
   const productId = req.params.pid;
   try {
-    const plantProduct = await productManager.getPlantProductById(productId);
-    if (!plantProduct) {
-      res.status(404).json({ error: 'Plant product not found' });
+    const product = await Product.findById(productId);
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
     } else {
-      res.json({ plantProduct });
+      res.json({ product });
     }
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -28,22 +27,10 @@ router.get('/:pid', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { title, description, code, price, stock, thumbnails } = req.body;
-    if (!title || !description || !code || !price || !stock || !thumbnails) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const newPlantProduct = {
-      title,
-      description,
-      code,
-      price,
-      stock,
-      thumbnails,
-    };
-
-    const plantProduct = await productManager.addPlantProduct(newPlantProduct);
-    res.status(201).json({ plantProduct });
+    const { title, description, price } = req.body;
+    const newProduct = new Product({ title, description, price });
+    await newProduct.save();
+    res.status(201).json({ product: newProduct });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

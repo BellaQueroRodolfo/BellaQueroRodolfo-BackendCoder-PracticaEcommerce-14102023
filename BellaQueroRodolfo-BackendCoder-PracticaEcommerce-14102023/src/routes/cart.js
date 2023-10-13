@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const ProductManager = require('../productManager');
-const productManager = new ProductManager('./data/products.json', './data/carts.json');
+const Cart = require('../dao/models/Cart');
 
 router.get('/', async (req, res) => {
   try {
-    const carts = await productManager.getAllCarts();
+    const carts = await Cart.find();
     res.json({ carts });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -15,7 +14,7 @@ router.get('/', async (req, res) => {
 router.get('/:cid', async (req, res) => {
   const cartId = req.params.cid;
   try {
-    const cart = await productManager.getCartById(cartId);
+    const cart = await Cart.findById(cartId);
     if (!cart) {
       res.status(404).json({ error: 'Cart not found' });
     } else {
@@ -28,38 +27,48 @@ router.get('/:cid', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const newCart = await productManager.createCart();
+    const newCart = new Cart();
+    await newCart.save();
     res.status(201).json({ cart: newCart });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.post('/:cid/products/:pid', async (req, res) => { // Corrected route
+router.post('/:cid/products/:pid', async (req, res) => {
   const cartId = req.params.cid;
   const productId = req.params.pid;
   try {
-    const updatedCart = await productManager.addToCart(cartId, productId);
-    if (!updatedCart) {
-      res.status(404).json({ error: 'Cart or Product not found' });
+    const cart = await Cart.findById(cartId);
+    if (!cart) {
+      res.status(404).json({ error: 'Cart not found' });
     } else {
-      res.json({ cart: updatedCart });
+      cart.products.push(productId);
+      await cart.save();
+      res.json({ cart });
     }
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.put('/:cid/products/:pid', async (req, res) => { // Corrected route
+router.put('/:cid/products/:pid', async (req, res) => {
   const cartId = req.params.cid;
   const productId = req.params.pid;
   const { quantity } = req.body;
   try {
-    const updatedCart = await productManager.updateCartProductQuantity(cartId, productId, quantity);
-    if (!updatedCart) {
-      res.status(404).json({ error: 'Cart or Product not found' });
+    const cart = await Cart.findById(cartId);
+    if (!cart) {
+      res.status(404).json({ error: 'Cart not found' });
     } else {
-      res.json({ cart: updatedCart });
+      const productIndex = cart.products.indexOf(productId);
+      if (productIndex === -1) {
+        res.status(404).json({ error: 'Product not found in cart' });
+      } else {
+        cart.productQuantities[productIndex] = quantity;
+        await cart.save();
+        res.json({ cart });
+      }
     }
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });

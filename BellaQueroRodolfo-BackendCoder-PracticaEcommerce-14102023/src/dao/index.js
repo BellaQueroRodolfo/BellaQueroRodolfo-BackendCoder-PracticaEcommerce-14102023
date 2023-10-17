@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost:27017/ecommerce', {
+mongoose.connect('mongodb+srv://<username>:<password>@cluster.mongodb.net/ecommerce', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
